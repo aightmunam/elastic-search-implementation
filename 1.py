@@ -1,18 +1,23 @@
-import glob
 import os
+import sys
 import nltk
-from nltk.tokenize import RegexpTokenizer
-import pickle
-import json
 import time
-import lxml
-from lxml.html.clean import Cleaner
+import codecs
+from nltk.tokenize import RegexpTokenizer
+from nltk.stem import PorterStemmer
 from bs4 import BeautifulSoup, Comment
+
+
+def index_exists(ls, i):
+    return (0 <= i < len(ls)) or (-len(ls) <= i < 0)
 
 
 def clean_me(html):
     soup = BeautifulSoup(html, 'html.parser')
-    soup = soup.body
+    if soup.html is None:
+        return ''
+    else:
+        soup = soup.html
     for s in soup(['script', 'style']):
         s.decompose()
     return ' '.join(soup.stripped_strings)
@@ -26,7 +31,7 @@ def parseThisShit(html):
         soup = soup.html
 
     for script in soup(["script", "style"]):
-        script.extract()    
+        script.extract()
     text = soup.get_text()
     lines = (line.strip() for line in text.splitlines())
     chunks = (phrase.strip()
@@ -34,76 +39,85 @@ def parseThisShit(html):
     text = ' '.join(chunk for chunk in chunks if chunk)
     return text
 
-
-tokenizer = RegexpTokenizer(r'\w+|\$[\d\.]+|\S+')
-
-directory_in_str = os.path.dirname(
-    os.path.realpath(__file__)) + r"\\corpus\*.txt"
-
-indexingDir = os.path.dirname(
-    os.path.realpath(__file__)) + r"\\corpus\\"
-
-directory = os.fsencode(directory_in_str)
-tokenList = {}
-docMapping = {}
-tokenLocs = {}
+def textNormalize(text):
+    tokens = tokenizer.tokenize(text)
+    tokens = [token.lower() for token in tokens]
+    tokens = [stemmer.stem(i) for i in tokens if i not in stopWords]
+    return tokens
 
 
-limit = 1
+if len(sys.argv) > 1:
+    indexingDir = os.getcwd() + r'\\' + sys.argv[1]
+else:
+    print("ERROR! Please enter the name of a directory containing the corpus documents.")
+    exit()
 
-i = 1
-k = 1
-open('mapping.txt', 'w').close()
-open('terms.txt', 'w').close()
+if not os.path.exists(indexingDir):
+    print("ERROR '" + indexingDir + "' does not exist or it is an invalid directory.")
+    exit()
+
+
+# tokenizer = RegexpTokenizer(r'\w+|\$[\d\.]+|\S+')
+tokenizer = RegexpTokenizer(r'\w+')
+stemmer = PorterStemmer()
+termList = {}
+stopWords = open(os.getcwd()+r"\\stoplist.txt").read()
+
+
+#Clearing the output files
+open('docids2.txt', 'w').close()
+open('termids2.txt', 'w').close()
+open('doc_index2.txt', 'w').close()
+
+docID = 0
+termID = 0
 for filename in os.listdir(indexingDir):
-
+    tempList = {}
+    docToTerm = []
+    docIndex = 0
     tmp = os.path.basename(filename)
-    docTitle = tmp[:tmp.rfind(".")]
+    docTitle = tmp
     print(docTitle)
-    limit = limit + 1
-    docMapping[docTitle] = i
-    i = i + 1
-
-    readfile = open(indexingDir + os.path.basename(filename), encoding='utf-8', errors = 'ignore').read()
+    docID = docID + 1
 
 
+    with codecs.open('docids2.txt', 'a', encoding='utf8') as map_doc:
+        map_doc.write(str(docID) + "\t" + docTitle + "\r\n")
+
+    readfile = open(indexingDir + r"//" + tmp, encoding='utf-8', errors = 'ignore').read()
 
     text = parseThisShit(readfile)
-
-    tokens = nltk.word_tokenize(text)
-    
-    # tokens = tokenizer.tokenize(readfile)
-
+    del readfile
+    tokens = textNormalize(text)
     for j in range(0, len(tokens)):
-        if tokens[j] not in tokenList:
-            newToken = str(k) + r"|" + tokens[j]
-            doc = os.path.basename(filename)[
-                :os.path.basename(filename).rfind(".")]
-            tokenList[tokens[j]] = doc
-            # indices = {x for x, y in enumerate(tokens) if y == tokens[j]}
-            # tokenLocs[tokens[j]] = [doc, i, indices]
+        if(tokens[j] not in termList):
+            termID = termID + 1
+            termList[tokens[j]] = termID
 
-            j = j + 1
-            k = k + 1
+        if tokens[j] not in tempList:
+            tempList[tokens[j]] = docIndex
+            docToTerm.append([termList[tokens[j]], j])
+            docIndex = docIndex+1
+
         else:
-            j = j + 1
+            if (index_exists(docToTerm, docID - 1)):
 
-# print(docMapping)
-# print(limit)
-# with open('terms.txt', 'w') as fp:
-#     fp.write(json.dumps(tokenList))
+                list = docToTerm[tempList[tokens[j]]]
+                if(list[0] == termList[tokens[j]]):
+                    list.append(j)
+                    docToTerm[tempList[tokens[j]]] = list
+        j = j + 1
 
-z = 1
-with open('mapping.txt', 'a') as map_doc:
-    for key in docMapping.keys():
-        map_doc.write(str(z) + "|" + key)
-        map_doc.write("\n")
-        z = z + 1
+    with codecs.open('doc_index2.txt', 'a', encoding= 'utf8') as forwardIndex:
+        for x in range(len(docToTerm)):
+            forwardIndex.write(str(docID) + "\t" + '\t'.join([str(z) for z in docToTerm[x]]) + "\r\n")
+    del forwardIndex
+    del tempList
+    del docToTerm
 
 
-z = 1
-with open('terms.txt', 'a') as f:
-    for key in tokenList.keys():
-        f.write(str(z) + r"|" + key)
-        f.write("\n")
-        z = z + 1
+with codecs.open('termids2.txt', 'w', encoding='utf8') as term_doc:
+    for key, value in termList.items():
+        term_doc.write(str(value) + "\t" + key)
+        term_doc.write("\r\n")
+
