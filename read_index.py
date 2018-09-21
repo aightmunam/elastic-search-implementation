@@ -5,6 +5,9 @@ import codecs
 import csv
 
 
+
+
+
 def getTermID(termName):
 	t = termName
 	term = ""
@@ -16,6 +19,8 @@ def getTermID(termName):
 					term = datas[0]
 
 	del termIDs
+	if term == "":
+		print("Term was not found.\n")
 	return term
 
 def getDocID(docTitle):
@@ -29,13 +34,15 @@ def getDocID(docTitle):
 		    		doc = datas[0]
 
 	del docIDs
+	if doc == "":
+		print("Document was not found.\n")
 	return doc
 
 
 def getListingsforDoc(docTitle):
 	d = docTitle
 	doc = getDocID(d)
-	print ("Listing for doc:\t" + doc)
+	print ("Listing for doc:\t" + d)
 	distinctTerms = 0
 	totalTerms = 0
 	with open("doc_index.txt") as docINFO:
@@ -45,10 +52,10 @@ def getListingsforDoc(docTitle):
 				if doc == datas[0]:
 					distinctTerms = distinctTerms + 1
 					totalTerms = totalTerms + len(datas[2:len(datas)])
-
-	print("DOCID:\t"  + doc + "\n")
-	print("Distinct Terms:\t" + str(distinctTerms) +"\n")
-	print("total Terms:\t" + str(totalTerms) + "\n")
+	if doc != "":
+		print("DOCID:\t"  + doc + "\n")
+		print("Distinct Terms:\t" + str(distinctTerms) +"\n")
+		print("total Terms:\t" + str(totalTerms) + "\n")
 
 	return
 
@@ -56,7 +63,7 @@ def getListingsforDoc(docTitle):
 def getListingsforTerm(termName):
 	t = termName
 	term = getTermID(t)
-	print ("Listing for term:\t" + term)
+	print ("Listing for term:\t" + t)
 
 	inv = ""
 	with open("term_info.txt", "r") as termINFO:
@@ -107,7 +114,7 @@ if len(sys.argv) >= 4:
 	else:
 		print("ERROR! Please enter the query in correct format: [--doc/--term][Document Title/Term Name]")
 		exit()
-elif len(sys.argv) == 2:
+elif len(sys.argv) >= 2:
     if(sys.argv[1] == '--doc'):
     	getListingsforDoc(sys.argv[2])
     elif(sys.argv[1] == '--term'):
