@@ -65,9 +65,9 @@ stopWords = open(os.getcwd()+r"\\stoplist.txt").read()
 
 
 #Clearing the output files
-open('docids2.txt', 'w').close()
-open('termids2.txt', 'w').close()
-open('doc_index2.txt', 'w').close()
+open('docids.txt', 'w').close()
+open('termids.txt', 'w').close()
+open('doc_index.txt', 'w').close()
 
 docID = 0
 termID = 0
@@ -81,7 +81,7 @@ for filename in os.listdir(indexingDir):
     docID = docID + 1
 
 
-    with codecs.open('docids2.txt', 'a', encoding='utf8') as map_doc:
+    with codecs.open('docids.txt', 'a', encoding='utf8') as map_doc:
         map_doc.write(str(docID) + "\t" + docTitle + "\r\n")
 
     readfile = open(indexingDir + r"//" + tmp, encoding='utf-8', errors = 'ignore').read()
@@ -108,7 +108,7 @@ for filename in os.listdir(indexingDir):
                     docToTerm[tempList[tokens[j]]] = list
         j = j + 1
 
-    with codecs.open('doc_index2.txt', 'a', encoding= 'utf8') as forwardIndex:
+    with codecs.open('doc_index.txt', 'a', encoding= 'utf8') as forwardIndex:
         for x in range(len(docToTerm)):
             forwardIndex.write(str(docID) + "\t" + '\t'.join([str(z) for z in docToTerm[x]]) + "\r\n")
     del forwardIndex
@@ -116,7 +116,7 @@ for filename in os.listdir(indexingDir):
     del docToTerm
 
 
-with codecs.open('termids2.txt', 'w', encoding='utf8') as term_doc:
+with codecs.open('termids.txt', 'w', encoding='utf8') as term_doc:
     for key, value in termList.items():
         term_doc.write(str(value) + "\t" + key)
         term_doc.write("\r\n")

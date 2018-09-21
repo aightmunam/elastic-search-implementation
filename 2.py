@@ -1,13 +1,9 @@
 import os
 import sys
-import nltk
 import time
 import codecs
 import csv
-import pandas as pd
-import pandas
-import copy
-from functools import partial
+
 
 def index_exists(ls, i):
     return (0 <= i < len(ls)) or (-len(ls) <= i < 0)
@@ -30,12 +26,10 @@ def deltaEncode(list):
 invertedList = []
 
 
-with open('doc_index2.txt') as inf:
+with open('doc_index.txt') as inf:
     reader = csv.reader(inf, delimiter="\t")
     for line in reader:
-    	# encodedLine = copy.deepcopy(line)
     	encodedLine = deltaEncode(line)
-    	# tmp = copy.deepcopy(encodedLine)
     	invertedList.append(partition(encodedLine))
 
 # print(invertedList[15])
@@ -44,31 +38,33 @@ keeptabsonDocs = {}
 termFrequency = {}
 docFrequency = {}
 byteOffsets = {}
-docCount = 1
 
 
 
 for j in range(0, len(invertedList)):
 	if(invertedList[j][0] not in checkTerms):
-		docCount = 1
+		
 		t = invertedList[j][1]
-		# testing.write(invertedList[j][0]+ "\t" + t + ("\t"+t).join(invertedList[j][2:len(invertedList[j])]) + "\r\n")
 		checkDocs =  "\t" + t + ":" + ("\t"+ "0" +":").join(invertedList[j][2:len(invertedList[j])])
 		checkTerms[invertedList[j][0]] = checkDocs
 		keeptabsonDocs[invertedList[j][0]] = invertedList[j][1]
 		termFrequency[invertedList[j][0]] = len(invertedList[j][2:len(invertedList[j])])
-		docFrequency[invertedList[j][0]] = docCount
+		# print(termFrequency['1'])
+		# time.sleep(10)
+		docFrequency[invertedList[j][0]] = 1
 
 	else:
 		tj = str(int(invertedList[j][1]) - int(keeptabsonDocs[invertedList[j][0]]))
 		concatTemp = checkTerms[invertedList[j][0]]
 		checkTerms[invertedList[j][0]] = concatTemp + ("\t" + tj + ":" + ("\t" + "0" + ":").join(invertedList[j][2:len(invertedList[j])]))
-		# print(checkTerms[invertedList[j][0]])
+
 		incrementCount = termFrequency[invertedList[j][0]]
 		docCount = docFrequency[invertedList[j][0]]
 		docCount = docCount+1
 		termFrequency[invertedList[j][0]] = incrementCount + len(invertedList[j][2:len(invertedList[j])])
 		docFrequency[invertedList[j][0]] = docCount
+		
+
 
 
 
@@ -102,5 +98,5 @@ print(len(byteOffsets))
 open("term_info.txt", 'w').close()
 with codecs.open("term_info.txt", 'w', encoding='utf8') as termInfo:
 	for key, value in termFrequency.items():
-		termInfo.write(key + "\t" + str(value) + "\t" + str(byteOffsets[key]) + "\t" + str(docFrequency[key]) + "\r\n")
+		termInfo.write(key + "\t" + str(byteOffsets[key]) + "\t" + str(value) + "\t" + str(docFrequency[key]) + "\r\n")
 
