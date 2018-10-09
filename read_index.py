@@ -3,10 +3,12 @@ import sys
 import time
 import codecs
 import csv
+from nltk.stem import PorterStemmer
 
 
-
-
+def stemQuery(queryString):
+	stemmer = PorterStemmer()
+	return stemmer.stem(queryString)
 
 def getTermID(termName):
 	t = termName
@@ -61,7 +63,7 @@ def getListingsforDoc(docTitle):
 
 
 def getListingsforTerm(termName):
-	t = termName
+	t = stemQuery(termName)
 	term = getTermID(t)
 	print ("Listing for term:\t" + t)
 
@@ -82,7 +84,7 @@ def getListingsforTerm(termName):
 
 
 def getDualListings(termName, docTitle):
-	t = termName
+	t = stemQuery(termName)
 	d = docTitle
 	print("Inverted list for term:\t" + t)
 	print("In document:\t" + d)
@@ -127,10 +129,3 @@ else:
 	exit()
 
 
-
-
-
-# del termINFO
-# with open("term_index.txt" , "rb") as checkOffset:
-# 	checkOffset.seek(int(inv))
-# 	print(checkOffset.readline())

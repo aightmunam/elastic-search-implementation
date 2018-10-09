@@ -49,8 +49,6 @@ for j in range(0, len(invertedList)):
 		checkTerms[invertedList[j][0]] = checkDocs
 		keeptabsonDocs[invertedList[j][0]] = invertedList[j][1]
 		termFrequency[invertedList[j][0]] = len(invertedList[j][2:len(invertedList[j])])
-		# print(termFrequency['1'])
-		# time.sleep(10)
 		docFrequency[invertedList[j][0]] = 1
 
 	else:
@@ -64,12 +62,6 @@ for j in range(0, len(invertedList)):
 		termFrequency[invertedList[j][0]] = incrementCount + len(invertedList[j][2:len(invertedList[j])])
 		docFrequency[invertedList[j][0]] = docCount
 		
-
-
-
-
-print(len(termFrequency))
-print(len(docFrequency))
 del invertedList
 del keeptabsonDocs
 del reader
@@ -92,8 +84,6 @@ with open("term_index.txt") as f:
 		byteOffsets[str(termNum)] = f.tell()
 		termNum = termNum + 1
 		line = f.readline()
-
-print(len(byteOffsets))
 
 open("term_info.txt", 'w').close()
 with codecs.open("term_info.txt", 'w', encoding='utf8') as termInfo:

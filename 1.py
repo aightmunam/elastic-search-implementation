@@ -35,7 +35,7 @@ def parseThisShit(html):
     text = soup.get_text()
     lines = (line.strip() for line in text.splitlines())
     chunks = (phrase.strip()
-              for line in lines for phrase in line.split("  "))
+              for line in lines for phrase in line.split(" "))
     text = ' '.join(chunk for chunk in chunks if chunk)
     return text
 
@@ -57,31 +57,33 @@ if not os.path.exists(indexingDir):
     exit()
 
 
-# tokenizer = RegexpTokenizer(r'\w+|\$[\d\.]+|\S+')
-tokenizer = RegexpTokenizer(r'\w+')
+tokenizer = RegexpTokenizer(r'[a-zA-Z0-9]*[a-zA-Z][a-zA-Z0-9]*')
+# tokenizer = RegexpTokenizer(r"[a-zA-Z]+")
 stemmer = PorterStemmer()
-termList = {}
 stopWords = open(os.getcwd()+r"\\stoplist.txt").read()
 
 
 #Clearing the output files
-open('docids.txt', 'w').close()
-open('termids.txt', 'w').close()
-open('doc_index.txt', 'w').close()
+open('docids2.txt', 'w').close()
+open('termids2.txt', 'w').close()
+open('doc_index2.txt', 'w').close()
 
+termList={}
 docID = 0
 termID = 0
+l = len(os.listdir(indexingDir))
 for filename in os.listdir(indexingDir):
     tempList = {}
     docToTerm = []
     docIndex = 0
     tmp = os.path.basename(filename)
     docTitle = tmp
-    print(docTitle)
+    # print(docTitle)
     docID = docID + 1
 
+    print("%.2f" % round(((docID/l)*100), 2) + r"%\t" + docTitle + "\n");
 
-    with codecs.open('docids.txt', 'a', encoding='utf8') as map_doc:
+    with codecs.open('docids2.txt', 'a', encoding='utf8') as map_doc:
         map_doc.write(str(docID) + "\t" + docTitle + "\r\n")
 
     readfile = open(indexingDir + r"//" + tmp, encoding='utf-8', errors = 'ignore').read()
@@ -93,6 +95,8 @@ for filename in os.listdir(indexingDir):
         if(tokens[j] not in termList):
             termID = termID + 1
             termList[tokens[j]] = termID
+            with codecs.open('termids2.txt', 'a', encoding='utf8') as term_doc:
+                term_doc.write(str(termList[tokens[j]]) + "\t" + tokens[j] + "\r\n")
 
         if tokens[j] not in tempList:
             tempList[tokens[j]] = docIndex
@@ -108,7 +112,7 @@ for filename in os.listdir(indexingDir):
                     docToTerm[tempList[tokens[j]]] = list
         j = j + 1
 
-    with codecs.open('doc_index.txt', 'a', encoding= 'utf8') as forwardIndex:
+    with codecs.open('doc_index2.txt', 'a', encoding= 'utf8') as forwardIndex:
         for x in range(len(docToTerm)):
             forwardIndex.write(str(docID) + "\t" + '\t'.join([str(z) for z in docToTerm[x]]) + "\r\n")
     del forwardIndex
@@ -116,8 +120,7 @@ for filename in os.listdir(indexingDir):
     del docToTerm
 
 
-with codecs.open('termids.txt', 'w', encoding='utf8') as term_doc:
-    for key, value in termList.items():
-        term_doc.write(str(value) + "\t" + key)
-        term_doc.write("\r\n")
-
+# with codecs.open('termids2.txt', 'w', encoding='utf8') as term_doc:
+#     for key, value in termList.items():
+#         term_doc.write(str(value) + "\t" + key)
+#         term_doc.write("\r\n")
