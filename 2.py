@@ -30,7 +30,7 @@ with open('doc_index.txt') as inf:
     reader = csv.reader(inf, delimiter="\t")
     for line in reader:
     	encodedLine = deltaEncode(line)
-    	invertedList.append(partition(encodedLine))
+    	invertedList.append(partition(line))
 
 # print(invertedList[15])
 checkTerms = {}
@@ -38,14 +38,14 @@ keeptabsonDocs = {}
 termFrequency = {}
 docFrequency = {}
 byteOffsets = {}
-
+delta = 0
 
 
 for j in range(0, len(invertedList)):
 	if(invertedList[j][0] not in checkTerms):
-		
 		t = invertedList[j][1]
-		checkDocs =  "\t" + t + ":" + ("\t"+ "0" +":").join(invertedList[j][2:len(invertedList[j])])
+
+		checkDocs = "\t" + t + ":" + ("\t" + "0" + ":").join(invertedList[j][2:len(invertedList[j])])
 		checkTerms[invertedList[j][0]] = checkDocs
 		keeptabsonDocs[invertedList[j][0]] = invertedList[j][1]
 		termFrequency[invertedList[j][0]] = len(invertedList[j][2:len(invertedList[j])])
@@ -53,6 +53,9 @@ for j in range(0, len(invertedList)):
 
 	else:
 		tj = str(int(invertedList[j][1]) - int(keeptabsonDocs[invertedList[j][0]]))
+
+		keeptabsonDocs[invertedList[j][0]] = invertedList[j][1]
+
 		concatTemp = checkTerms[invertedList[j][0]]
 		checkTerms[invertedList[j][0]] = concatTemp + ("\t" + tj + ":" + ("\t" + "0" + ":").join(invertedList[j][2:len(invertedList[j])]))
 
@@ -89,4 +92,3 @@ open("term_info.txt", 'w').close()
 with codecs.open("term_info.txt", 'w', encoding='utf8') as termInfo:
 	for key, value in termFrequency.items():
 		termInfo.write(key + "\t" + str(byteOffsets[key]) + "\t" + str(value) + "\t" + str(docFrequency[key]) + "\r\n")
-

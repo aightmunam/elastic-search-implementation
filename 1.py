@@ -92,7 +92,7 @@ for filename in os.listdir(indexingDir):
     del readfile
     tokens = textNormalize(text)
     for j in range(0, len(tokens)):
-        if(tokens[j] not in termList):
+        if tokens[j] not in termList:
             termID = termID + 1
             termList[tokens[j]] = termID
             with codecs.open('termids2.txt', 'a', encoding='utf8') as term_doc:
@@ -104,10 +104,10 @@ for filename in os.listdir(indexingDir):
             docIndex = docIndex+1
 
         else:
-            if (index_exists(docToTerm, docID - 1)):
+            if index_exists(docToTerm, docID - 1):
 
                 list = docToTerm[tempList[tokens[j]]]
-                if(list[0] == termList[tokens[j]]):
+                if list[0] == termList[tokens[j]]:
                     list.append(j)
                     docToTerm[tempList[tokens[j]]] = list
         j = j + 1
@@ -124,3 +124,4 @@ for filename in os.listdir(indexingDir):
 #     for key, value in termList.items():
 #         term_doc.write(str(value) + "\t" + key)
 #         term_doc.write("\r\n")
+
