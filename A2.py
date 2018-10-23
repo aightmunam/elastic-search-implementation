@@ -12,6 +12,39 @@ import itertools
 
 
 TOTALDOCS = 3496
+# invertedIndex = {}
+# docLengths = {}
+
+
+def loadLengths():
+	lengthdict = dict()
+	with open("doc_lengths.txt") as file:
+		while(True):
+			l = file.readline()
+			if l is "":
+				break
+			else:
+				p = l.split("\t")
+				p[len(p) - 1] = p[len(p) - 1].rstrip()
+				lengthdict[p[0]] = p[1]
+
+	return lengthdict
+
+
+def loadInvertedIndex():
+	invertedIndex = dict()
+	with open("term_index.txt") as ii:
+		while (True):
+			l = ii.readline()
+			if l is "":
+				break
+			else:
+				p = l.split("\t")
+				p[len(p)-1] = p[len(p)-1].rstrip()
+
+				invertedIndex[p[0]] = p[1:]
+	return invertedIndex
+
 
 def textNormalize(text):
 	token = tokenizer.tokenize(text)
@@ -32,6 +65,7 @@ def parseThisShit(html):
 		text = ' '.join(chunk for chunk in chunks if chunk)
 		t1.append(text)
 	return t1
+
 
 def getTermID(term):
 	t = term
@@ -59,40 +93,33 @@ def getDocID(doc):
 	del docIDs
 	return doc
 
-def getListingsforDoc(docTitle):
-	d = docTitle
-	doc = getDocID(d)
-	distinctTerms = 0
-	totalTerms = 0
-	with open("doc_index.txt") as docINFO:
-		for line in docINFO:
-			if doc in line:
-				data = line.split()
-				if doc == data[0]:
-					distinctTerms = distinctTerms + 1
-					totalTerms = totalTerms + len(data[2:len(data)])
 
 
-	return distinctTerms, totalTerms
+def deltaDecodeDocs(postings):
+	docs = list()
+	positions = dict()
+	newD = 0
+	newT = 0
+	term = []
+	for _ in range(0,len(postings)):
+		tmp = postings[_]
+		doc, n, position = tmp.partition(":")
+		doc = int(doc)
+		position = int(position)
+		if doc is 0:
+			newT = position + newT
+			term.append(newT)
+		elif doc is not 0:
+			if term:
+				positions[str(newD)] = term
+			term = []
+			newD = doc + newD
+			docs.append(newD)
+			newT = newT + position
+			term.append(newT)
+			p
+	return docs, positions
 
-
-
-def getAllTerms(document):
-	freq = []
-	flag = False
-	doc = str(document)
-	with open("doc_index.txt") as docINFO:
-		for line in docINFO:
-			if doc in line:
-				data = line.split()
-				if doc == data[0]:
-					l = (data[2:len(data)])
-					freq.append(l)
-					flag = True
-				if doc != data[0] and flag is True:
-					break
-	freq = list(itertools.chain.from_iterable(freq))
-	return freq
 
 def tf(term, document):
 	freq = 0
@@ -109,74 +136,51 @@ def tf(term, document):
 
 	return freq
 
-def deltaDecodeDocs(postings):
-	docs = list()
-	positions = dict()
-	newD = 0
-	newT = 0
-	term = []
-	for _ in range(1,len(postings)):
-		tmp = postings[_]
-		doc, n, position = tmp.partition(":")
-		doc = int(doc)
-		position = int(position)
-		if doc is 0:
-			newT = position + newT
-			term.append(newT)
-		elif doc is not 0:
-			if term:
-				positions[str(newD)] = term
-			term = []
-			newD = doc + newD
-			docs.append(newD)
-			newT = newT + position
-			term.append(newT)
-
-
-	return docs, positions
-
-
 
 def tf_mem(term, document):
 	freq = 0
 	doc = str(document)
 	if doc not in invertedIndex.keys():
-		return 0
-	postings = invertedIndex[document]
-	_, positions = deltaDecodeDocs(postings)
-	return positions
+		for i in range(1,len(document)):
+			if(term in document[i]):
+				freq = freq + 1
+		return freq
 
-
+	_, positions = deltaDecodeDocs(invertedIndex[term])
+	print(term)
+	return len(positions[doc])
 
 
 def length(document):
-	count = 0
-	doc = str(document)
-	with open("doc_lengths.txt") as docINFO:
+	if str(document) in docLengths:
+		return docLengths[str(document)]
+	return len(document)
+
+
+def getDocTerms(doc):
+	# DocDict = {}
+	DocList = []
+	totalTerms = 0
+	doc = str(doc)
+	with open("doc_index.txt") as docINFO:
 		for line in docINFO:
 			if doc in line:
 				data = line.split()
 				if doc == data[0]:
-					return data[1]
+					# DocDict[str(data[1])] = data[2:len(data)]
+					DocList.append(data[1])
+					totalTerms = totalTerms + len(data[2:len(data)])
+
+	return DocList, totalTerms
 
 
 
-def df(term):
-	with open("term_info.txt", "r") as termINFO:
-		for line in termINFO:
-			if term in line:
-				data = line.split()
-				if term == data[0]:
-					return int(data[3])
-
-
-
-def df_mem(id):
+def df(id):
 	newD = 0
 	docs = []
 	postings = invertedIndex[id]
-	docs = deltaDecodeDocs(postings)
-	return docs
+	docs, _ = deltaDecodeDocs(postings)
+	return len(docs)
 
 
 def avglength(totalDocs):
@@ -188,11 +192,11 @@ def avglength(totalDocs):
 
 def oktf(term, document):
 	avglen = avglength(TOTALDOCS)
-	return int(tf(term, document) / (tf(term, document) + 0.5 + 1.5 * (int(length(document)) / avglen)))
+	return float(tf_mem(term, document) / (tf_mem(term, document) + 0.5 + 1.5 * (int(length(document)) / avglen)))
 
 
 def otaki_tf(document, query):
-	Dterms = getAllTerms(document)
+	Dterms, _ = getDocTerms(document)
 	tfD = dict()
 	tfQ = dict()
 	Qterms = query
@@ -201,12 +205,19 @@ def otaki_tf(document, query):
 	for j in range(len(Qterms)):
 		tfQ[Qterms[j]] = oktf(Qterms[j], query)
 
-	dlen = vectorlength(tfD.values())
-	qlen = vectorlength(tfQ.values())
+	dlen = vectorlength(list(tfD.values()))
+	qlen = vectorlength(list(tfQ.values()))
+	print(dlen)
+	print(qlen)
 
 	dxq = 0
+	keylist = list(tfQ.keys())
+	k2 = list(tfD.keys())
+	print(set(keylist).intersection(k2))
+
 	for key in tfQ.keys():
 		if key in tfD.keys():
+			print(key)
 			dxq = dxq + tfQ[key] * tfD[key]
 
 	return dxq / (dlen * qlen)
@@ -233,19 +244,23 @@ def okapi_BM25(term, document, query):
 
 def vectorlength(tfs):
 	s = 0
-	for i in range(len(tfs)):
+	for i in range(1,len(tfs)):
 		s = s + (tfs[i] * tfs[i])
 
 	return math.sqrt(s)
 
-
+def getAllDocs(term):
+	docs, _ = deltaDecodeDocs(invertedIndex[term])
+	return docs
 
 def getAllDocsOfaQuery(query):
 	d = []
 	for i in range(len(query)):
-		d.append(getAllDocs(getTermID(tokens[i])))
+		d.append(getAllDocs(getTermID(query[i])))
 	d = list(itertools.chain.from_iterable(d))
 	return d
+
+
 
 
 
@@ -253,46 +268,24 @@ tokenizer = RegexpTokenizer(r'[a-zA-Z0-9]*[a-zA-Z][a-zA-Z0-9]*')
 stemmer = PorterStemmer()
 stopWords = open(os.getcwd()+r"\\stoplist.txt").read()
 
-
 readfile = open(os.getcwd() + "\\topics.xml", encoding='utf-8', errors = 'ignore').read()
 
 parsed = parseThisShit(readfile)
 tokens = textNormalize(parsed[0])
 
+invertedIndex = loadInvertedIndex()
+docLengths = loadLengths()
 
-invertedIndex = dict()
-with open("term_index.txt") as ii:
-	while(True):
-		l = ii.readline()
-		if l is "":
-			break
-		else:
-			p = l.split("\t")
 
-			invertedIndex[p[0]] = p[1:]
-
-print(df('1'))
-print(len(df_mem('1')))
-
-print(invertedIndex['1'])
-docs, terms = deltaDecodeDocs(invertedIndex['1'])
-print(docs)
-print(terms)
 # documents = getAllDocsOfaQuery(tokens)
-# query = []
-# for i in range(len(tokens)):
-# 	query.append(getTermID(tokens[i]))
 #
-# s = otaki_tf(documents[0], query)
+# query = [getTermID(tokens[i]) for i in range(1,len(tokens))]
+# query.append('153')
+# s = otaki_tf(documents[3], query)
+
+a,b = deltaDecodeDocs(invertedIndex['11809'])
+print(a)
+print(b)
 
 
-
-# print((documents))
-
-
-# print(oktf(id, documents[0]))
-
-# print(tf(id,documents[0]))
-# print(documents)
-
-
+print(s)
