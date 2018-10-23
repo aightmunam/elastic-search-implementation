@@ -112,12 +112,13 @@ def deltaDecodeDocs(postings):
 		elif doc is not 0:
 			if term:
 				positions[str(newD)] = term
+				newT = 0
 			term = []
 			newD = doc + newD
 			docs.append(newD)
 			newT = newT + position
 			term.append(newT)
-			p
+			positions[str(newD)] = term
 	return docs, positions
 
 
@@ -147,7 +148,6 @@ def tf_mem(term, document):
 		return freq
 
 	_, positions = deltaDecodeDocs(invertedIndex[term])
-	print(term)
 	return len(positions[doc])
 
 
@@ -207,13 +207,8 @@ def otaki_tf(document, query):
 
 	dlen = vectorlength(list(tfD.values()))
 	qlen = vectorlength(list(tfQ.values()))
-	print(dlen)
-	print(qlen)
 
 	dxq = 0
-	keylist = list(tfQ.keys())
-	k2 = list(tfD.keys())
-	print(set(keylist).intersection(k2))
 
 	for key in tfQ.keys():
 		if key in tfD.keys():
@@ -276,16 +271,13 @@ tokens = textNormalize(parsed[0])
 invertedIndex = loadInvertedIndex()
 docLengths = loadLengths()
 
+print(invertedIndex['1'])
+_, b = deltaDecodeDocs(invertedIndex['1'])
+print(b)
 
 # documents = getAllDocsOfaQuery(tokens)
 #
 # query = [getTermID(tokens[i]) for i in range(1,len(tokens))]
-# query.append('153')
 # s = otaki_tf(documents[3], query)
-
-a,b = deltaDecodeDocs(invertedIndex['11809'])
-print(a)
-print(b)
-
-
-print(s)
+# print(s)
+#
