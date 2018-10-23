@@ -64,13 +64,15 @@ stopWords = open(os.getcwd()+r"\\stoplist.txt").read()
 
 
 #Clearing the output files
-open('docids2.txt', 'w').close()
-open('termids2.txt', 'w').close()
-open('doc_index2.txt', 'w').close()
+open('docids.txt', 'w').close()
+open('termids.txt', 'w').close()
+open('doc_index.txt', 'w').close()
+open('doc_lengths.txt', 'w').close()
 
 termList={}
 docID = 0
 termID = 0
+doclengths = {}
 l = len(os.listdir(indexingDir))
 for filename in os.listdir(indexingDir):
     tempList = {}
@@ -83,7 +85,7 @@ for filename in os.listdir(indexingDir):
 
     print("%.2f" % round(((docID/l)*100), 2) + r"%\t" + docTitle + "\n");
 
-    with codecs.open('docids2.txt', 'a', encoding='utf8') as map_doc:
+    with codecs.open('docids.txt', 'a', encoding='utf8') as map_doc:
         map_doc.write(str(docID) + "\t" + docTitle + "\r\n")
 
     readfile = open(indexingDir + r"//" + tmp, encoding='utf-8', errors = 'ignore').read()
@@ -91,11 +93,12 @@ for filename in os.listdir(indexingDir):
     text = parseThisShit(readfile)
     del readfile
     tokens = textNormalize(text)
+    doclengths[docID] = len(tokens)
     for j in range(0, len(tokens)):
         if tokens[j] not in termList:
             termID = termID + 1
             termList[tokens[j]] = termID
-            with codecs.open('termids2.txt', 'a', encoding='utf8') as term_doc:
+            with codecs.open('termids.txt', 'a', encoding='utf8') as term_doc:
                 term_doc.write(str(termList[tokens[j]]) + "\t" + tokens[j] + "\r\n")
 
         if tokens[j] not in tempList:
@@ -112,16 +115,19 @@ for filename in os.listdir(indexingDir):
                     docToTerm[tempList[tokens[j]]] = list
         j = j + 1
 
-    with codecs.open('doc_index2.txt', 'a', encoding= 'utf8') as forwardIndex:
+    with codecs.open('doc_index.txt', 'a', encoding= 'utf8') as forwardIndex:
         for x in range(len(docToTerm)):
             forwardIndex.write(str(docID) + "\t" + '\t'.join([str(z) for z in docToTerm[x]]) + "\r\n")
+
+
     del forwardIndex
     del tempList
     del docToTerm
 
 
-# with codecs.open('termids2.txt', 'w', encoding='utf8') as term_doc:
-#     for key, value in termList.items():
-#         term_doc.write(str(value) + "\t" + key)
-#         term_doc.write("\r\n")
+
+with codecs.open('doc_lengths.txt', 'w', encoding='utf8') as lengths:
+    for key, value in doclengths.items():
+        lengths.write(str(key) + "\t" + str(value))
+        lengths.write("\r\n")
 
