@@ -3,6 +3,7 @@ import sys
 import time
 import codecs
 import csv
+from collections import OrderedDict
 
 
 def index_exists(ls, i):
@@ -35,7 +36,7 @@ with open('doc_index.txt') as inf:
 # print(invertedList[15])
 checkTerms = {}
 keeptabsonDocs = {}
-termFrequency = {}
+termFrequency = OrderedDict()
 docFrequency = {}
 byteOffsets = {}
 delta = 0

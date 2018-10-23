@@ -109,14 +109,42 @@ def tf(term, document):
 
 	return freq
 
+def deltaDecodeDocs(postings):
+	docs = list()
+	positions = dict()
+	newD = 0
+	newT = 0
+	term = []
+	for _ in range(1,len(postings)):
+		tmp = postings[_]
+		doc, n, position = tmp.partition(":")
+		doc = int(doc)
+		position = int(position)
+		if doc is 0:
+			newT = position + newT
+			term.append(newT)
+		elif doc is not 0:
+			if term:
+				positions[str(newD)] = term
+			term = []
+			newD = doc + newD
+			docs.append(newD)
+			newT = newT + position
+			term.append(newT)
+
+
+	return docs, positions
+
+
 
 def tf_mem(term, document):
-	freq = 0;
+	freq = 0
 	doc = str(document)
 	if doc not in invertedIndex.keys():
 		return 0
-	for i in range(1, len(invertedIndex[doc])):
-		return
+	postings = invertedIndex[document]
+	_, positions = deltaDecodeDocs(postings)
+	return positions
 
 
 
@@ -141,27 +169,6 @@ def df(term):
 				if term == data[0]:
 					return int(data[3])
 
-
-def deltaDecodeDocs(postings):
-	docs = list()
-	terms = dict()
-	newD = 0
-	newT = 0
-	for _ in range(len(postings)):
-		tmp = postings[_]
-		doc, n, position = tmp.partition(":")
-		doc = int(doc)
-		position = int(position)
-		if doc is not 0:
-			newD = doc + newD
-			docs.append(newD)
-			term = list()
-		elif doc is 0:
-				newT = position + newT
-				term.append(newT)
-
-
-	return docs, terms
 
 
 def df_mem(id):
