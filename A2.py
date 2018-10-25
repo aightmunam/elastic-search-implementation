@@ -383,8 +383,6 @@ s1 = scoring()
 tokens = s1.tokens(s1.queries[0][1])
 query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
 documents = s1.getAllDocsOfaQuery(query)
-documents.sort()
-
 scores = []
 for i in range(1, TOTALDOCS):
 	if i in documents:
