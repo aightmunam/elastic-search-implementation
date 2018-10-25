@@ -348,7 +348,7 @@ def getAllDocs(term):
 def getAllDocsOfaQuery(query):
 	d = []
 	for i in range(len(query)):
-		d.append(getAllDocs(getTermID(query[i])))
+		d.append(getAllDocs(query[i]))
 
 	d = list(set(list(itertools.chain.from_iterable(d))))
 
@@ -366,17 +366,17 @@ tokens = textNormalize(parsed[0])
 invertedIndex = loadInvertedIndex()
 docLengths = loadLengths()
 
-documents = getAllDocsOfaQuery(tokens)
+
 query = [getTermID(tokens[i]) for i in range(len(tokens))]
-scores
-# print(query)
-# i = 400
-# print(okapi_tf(documents[i], query))
-# print(TF_IDF(documents[i], query))
-# print(okapi_BM25(documents[i], query))
-# print(JM(documents[i], query))
+documents = getAllDocsOfaQuery(query)
+
+i = 2
+print(okapi_tf(documents[i], query))
+print(TF_IDF(documents[i], query))
+print(okapi_BM25(documents[i], query))
+print(JM(documents[i], query))
 
 
-print(len(documents))
+# print(len(documents))
 # for i in range(1, len(documents)):
 # 	print(str(documents[i]) + " : " + str(okapi_tf(documents[i], query)))
