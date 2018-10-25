@@ -14,10 +14,6 @@ TOTALDOCS = 3496
 
 
 class scoring:
-<<<<<<< HEAD
-=======
-
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 	invertedIndex = {}
 	docLengths = {}
 	queries = {}
@@ -59,16 +55,12 @@ class scoring:
 					self.invertedIndex[p[0]] = p[1:]
 		return self.invertedIndex
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 	def loadQueries(self):
 		readfile = open(os.getcwd() + "\\topics.xml", encoding='utf-8', errors='ignore').read()
 		self.queries = self.parseThisShit(readfile)
 		return self.queries
 
-<<<<<<< HEAD
+
 	# normalizes the queries in the same way our inverted index is
 	def textNormalize(self, text):
 		token = self.tokenizer.tokenize(text)
@@ -88,34 +80,9 @@ class scoring:
 			lines = (line.strip() for line in text.splitlines())
 			chunks = (phrase.strip() for line in lines for phrase in line.split(" "))
 			text = ' '.join(chunk for chunk in chunks if chunk)
-			queries.append([num,text])
+			queries.append([num, text])
 		return queries
-=======
 
-	# normalizes the queries in the same way our inverted index is
-	def textNormalize(self, text, tokenizer, stemmer, stopwords):
-
-		token = tokenizer.tokenize(text)
-		token = [t.lower() for t in token]
-		token = [stemmer.stem(i) for i in token if i not in stopwords]
-		return token
-
-
-	# parses our queries
-	def parseThisShit(self, html):
-		soup = BeautifulSoup(html, 'html.parser')
-		soup = soup.find_all('query')
-		t1 = []
-		for i in range(len(soup)):
-			text = soup[i].get_text()
-			lines = (line.strip() for line in text.splitlines())
-			chunks = (phrase.strip()
-					  for line in lines for phrase in line.split(" "))
-			text = ' '.join(chunk for chunk in chunks if chunk)
-			t1.append(text)
-		return t1
-
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 
 	# returns the term id
 	def getTermID(self, term):
@@ -127,14 +94,9 @@ class scoring:
 					data = line.split()
 					if t == data[1]:
 						term = data[0]
-
 		del termIDs
 		return term
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 	# returns the document id of the document
 	def getDocID(self, doc):
 		d = doc
@@ -145,7 +107,6 @@ class scoring:
 					data = line.split()
 					if d == data[1]:
 						doc = data[0]
-<<<<<<< HEAD
 		del docIDs
 		return doc
 
@@ -160,13 +121,7 @@ class scoring:
 						doc = data[1]
 		del docIDs
 		return doc
-=======
 
-		del docIDs
-		return doc
-
-
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 	# Returns the docs in the postings list of given term
 	# It also returns a dictionary which stores the list of positions of the given term in every document it appears in
 	# dict[document in which the term appears] = [list of all the positions it appears in the document]
@@ -177,11 +132,7 @@ class scoring:
 		newD = 0
 		newT = 0
 		term = []
-<<<<<<< HEAD
 		for _ in range(len(postings)):
-=======
-		for _ in range(0, len(postings)):
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
 			tmp = postings[_]
 			doc, n, position = tmp.partition(":")
 			doc = int(doc)
@@ -200,7 +151,6 @@ class scoring:
 				term.append(newT)
 				positions[str(newD)] = term
 		return docs, positions
-<<<<<<< HEAD
 
 	# Uses doc_index.txt for the same functionality of tf_mem
 	def tf(self, term, document):
@@ -228,7 +178,7 @@ class scoring:
 			_, positions = self.deltaDecodeDocs(self.invertedIndex[term])
 			if type(document) is list:
 				for i in range(len(document)):
-					if (str(term) in document[i]):
+					if str(term) in document[i]:
 						freq = freq + 1
 				return freq
 			if doc not in positions:
@@ -266,12 +216,14 @@ class scoring:
 		docs, _ = self.deltaDecodeDocs(postings)
 		return len(docs)
 
+
 	# returns the average document length in the corpus
 	def getAvgFieldLength(self):
 		sum = 0
 		for i in range(1, TOTALDOCS):
 			sum = sum + int(self.length(i))
 		return sum / TOTALDOCS
+
 
 	# determines the cosine similarity between the query and doc
 	# both the queryTerms and docTerms are dictionary having query/doc as keys and their tf/oktf/tf-idf as the value
@@ -285,6 +237,7 @@ class scoring:
 				dxq = dxq + queryTerms[key] * docTerms[key]
 
 		return dxq / (dlen * qlen)
+
 
 	# this returns the norm or the vector length. i.e By pathagoras theorem, square root of squared sum of all components
 	def vectorlength(self, tfs):
@@ -406,27 +359,6 @@ class scoring:
 	def tokens(self, query):
 		return self.textNormalize(query)
 
-
-s1 = scoring()
-
-tokens = s1.tokens(s1.queries[0][1])
-# tokens = tokens[1]
-print(tokens)
-query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
-documents = s1.getAllDocsOfaQuery(query)
-print(len(documents))
-scores = []
-for i in range(1, TOTALDOCS):
-	if i in documents:
-		scores.append(s1.JM(i, query))
-	else:
-		scores.append(0.0)
-	print(str(i) + " : " + str(scores[i-1]))
-
-print(scores)
-=======
-
-
 	# Uses doc_index.txt for the same functionality of tf_mem
 	def tf(self, term, document):
 		freq = 0
@@ -528,13 +460,11 @@ print(scores)
 
 	# IMPLEMENTATION FUNCTIONS OF OKAPI-TF FROM HERE ONWARDS
 
-
 	# returns the oktf score given a document and the term
 	def oktf(self, term, document):
 		avglen = self.getAvgFieldLength()
 		freq = self.tf_mem(term, document)
 		return float(self.tf_mem(term, document) / (self.tf_mem(term, document) + 0.5 + 1.5 * (int(self.length(document)) / avglen)))
-
 
 	# gets the document and query and computes their similarity (scores them) based on the okapi_tf method
 	def okapi_tf(self, document, query):
@@ -650,27 +580,25 @@ print(scores)
 		return d
 
 	def tokens(self, query):
-		return self.textNormalize(query, self.tokenizer, self.stemmer, self.stopWords)
+		return self.textNormalize(query)
 
 
 s1 = scoring()
 
-tokens = s1.tokens(s1.queries[0])
+tokens = s1.tokens(s1.queries[0][1])
 query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
 documents = s1.getAllDocsOfaQuery(query)
+documents.sort()
 
-i = 2
-print(s1.okapi_tf(documents[i], query))
-print(s1.TF_IDF(documents[i], query))
-print(s1.okapi_BM25(documents[i], query))
-print(s1.JM(documents[i], query))
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
+scores = []
+for i in range(1, TOTALDOCS):
+	if i in documents:
+		scores.append(s1.JM(i, query))
+	else:
+		scores.append(0.0)
+	print(str(i) + " " + str(scores[i - 1]))
 
-with open("scores.txt", "w") as s:
-	[s.write(str(202) + str(0) + " " + s1.getDocTitle(i) + str(scores[i]) + "\r\n") for i in range(1, len(scores))]
 
-<<<<<<< HEAD
-=======
-# for i in range(1, len(documents)):
-# 	print(str(documents[i]) + " : " + str(okapi_tf(documents[i], query)))
->>>>>>> 11b2acd8ae347105ac60a254b20c819282fe965d
+with open("scores2.txt", "w") as s:
+	[s.write(str(202) + "\t" + str(0) + "\t" + s1.getDocTitle(i) + "\t" + str(scores[i]) + "\r\n") for i in range(1, len(scores))]
+
