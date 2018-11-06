@@ -1,13 +1,9 @@
 import os
 import sys
-import nltk
-import time
 import math
-import codecs
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem import PorterStemmer
-from bs4 import BeautifulSoup, Comment
-import csv
+from bs4 import BeautifulSoup
 import itertools
 
 TOTALDOCS = 3496
@@ -16,6 +12,8 @@ TOTALDOCS = 3496
 class scoring:
 	invertedIndex = {}
 	docLengths = {}
+	docNormOktf = {}
+	docNormtfidf = {}
 	queries = {}
 	tokenizer = RegexpTokenizer(r'[a-zA-Z0-9]*[a-zA-Z][a-zA-Z0-9]*')
 	stemmer = PorterStemmer()
@@ -25,6 +23,7 @@ class scoring:
 		self.invertedIndex = self.loadInvertedIndex()
 		self.docLengths = self.loadLengths()
 		self.queries = self.loadQueries()
+		self.docNormOktf, self.docNormtfidf = self.loadNorms()
 
 	# loads the lengths of the documents
 	def loadLengths(self):
@@ -44,9 +43,9 @@ class scoring:
 	# loads our inverted index
 	def loadInvertedIndex(self):
 		self.invertedIndex = dict()
-		with open("term_index.txt") as ii:
+		with open("term_index.txt") as file:
 			while (True):
-				l = ii.readline()
+				l = file.readline()
 				if l is "":
 					break
 				else:
@@ -55,11 +54,51 @@ class scoring:
 					self.invertedIndex[p[0]] = p[1:]
 		return self.invertedIndex
 
+	def loadNorms(self):
+		for doc in range(1, TOTALDOCS):
+			with open("doc_norms_Oktf.txt") as file1:
+				while (True):
+					l = file1.readline()
+					if l is "":
+						break
+					else:
+						p = l.split("\t")
+						self.docNormOktf[p[0]] = p[1].rstrip()
+
+			with open("doc_norms_tfidf.txt") as file1:
+				while (True):
+					l = file1.readline()
+					if l is "":
+						break
+					else:
+						p = l.split("\t")
+						self.docNormtfidf[p[0]] = p[1]
+
+			if self.docNormtfidf is not None and self.docNormOktf is not None:
+				return self.docNormOktf, self.docNormtfidf
+
+			Dterms, _ = self.getDocTerms(doc)
+			oktf = dict()
+			tfidf = dict()
+			for i in range(len(Dterms)):
+				oktf[Dterms[i]] = self.oktf(Dterms[i], doc)
+				tfidf[Dterms[i]] = self.tf_idf(Dterms[i], doc)
+
+			self.docNormOktf[doc] = self.vectorlength(list(oktf.values()))
+			self.docNormtfidf[doc] = self.vectorlength(list(tfidf.values()))
+
+			with open("doc_norms_Oktf.txt", "a") as file1:
+				file1.write(str(doc) + "\t" + str(self.docNormOktf[doc]) + "\n")
+
+			with open("doc_norms_tfidf.txt", "a") as file2:
+				file2.write(str(doc) + "\t" + str(self.docNormtfidf[doc]) + "\n")
+
+		return self.docNormOktf, self.docNormtfidf
+
 	def loadQueries(self):
 		readfile = open(os.getcwd() + "\\topics.xml", encoding='utf-8', errors='ignore').read()
 		self.queries = self.parseThisShit(readfile)
 		return self.queries
-
 
 	# normalizes the queries in the same way our inverted index is
 	def textNormalize(self, text):
@@ -82,7 +121,6 @@ class scoring:
 			text = ' '.join(chunk for chunk in chunks if chunk)
 			queries.append([num, text])
 		return queries
-
 
 	# returns the term id
 	def getTermID(self, term):
@@ -185,8 +223,14 @@ class scoring:
 				return 0
 			return len(positions[doc])
 
-	# returns the length of a document. (This includes the count of all the terms' positions in the document)
-	def length(self, document):
+	def isIndex(self, ind):
+		if ind <= len(self.docNormtfidf):
+			return True
+		else:
+			return False
+
+	# returns the Length of a document. (This includes the count of all the terms' positions in the document)
+	def Length(self, document):
 		if str(document) in self.docLengths:
 			return int(self.docLengths[str(document)])
 		return len(document)
@@ -205,14 +249,9 @@ class scoring:
 						# DocDict[str(data[1])] = data[2:len(data)]
 						DocList.append(data[1])
 						totalTerms = totalTerms + len(data[2:len(data)])
-
 		return DocList, totalTerms
 
-
 	# IMPLEMENTATION FUNCTIONS OF OKAPI-TF FROM HERE ONWARDS
-
-
-
 	# returns all the documents, a term appears in
 	def df(self, term):
 		if str(term) not in self.invertedIndex.keys():
@@ -221,133 +260,110 @@ class scoring:
 		docs, _ = self.deltaDecodeDocs(postings)
 		return len(docs)
 
-
-	# returns the average document length in the corpus
+	# returns the average document Length in the corpus
 	def getAvgFieldLength(self):
-		sum = 0
-		for i in range(1, TOTALDOCS):
-			sum = sum + int(self.length(i))
-		return sum / TOTALDOCS
-
-
+		return self.totalLength() / TOTALDOCS
 
 	# determines the cosine similarity between the query and doc
 	# both the queryTerms and docTerms are dictionary having query/doc as keys and their tf/oktf/tf-idf as the value
 	# queryTerms [query term number 1] = oktf/tf/tf-idf of the query term number 1
-	def sim(self, queryTerms, docTerms):
-		dlen = self.vectorlength(list(docTerms.values()))
+	def sim(self, query, document, queryTerms, docTerms):
+		if self.isIndex(document):
+			dlen = float(self.docNormtfidf[str(document)])
+		else:
+			Dterms = []
+			tfD = {}
+			Dterms = self.getDocTerms(document)
+			for i in range(len(Dterms)):
+				tfD[Dterms[i]] = self.tf_idf(Dterms[i], document)
+			dlen = self.vectorlength(list(tfD.values()))
 		qlen = self.vectorlength(list(queryTerms.values()))
 		dxq = 0
 		for key in queryTerms.keys():
 			if key in docTerms.keys():
 				dxq = dxq + queryTerms[key] * docTerms[key]
 
+		if dlen == 0 or qlen == 0:
+			return 0
 		return dxq / (dlen * qlen)
 
-
-	# this returns the norm or the vector length. i.e By pathagoras theorem, square root of squared sum of all components
+	# this returns the norm or the vector Length. i.e By pathagoras theorem, square root of squared sum of all components
 	def vectorlength(self, tfs):
-		s = 0
-		for i in range(len(tfs)):
-			s = s + (tfs[i] * tfs[i])
-		return math.sqrt(s)
-
+		return math.sqrt(sum([tfs[i]*tfs[i] for i in range(len(tfs))]))
 
 	# IMPLEMENTATION FUNCTIONS OF OKAPI-TF FROM HERE ONWARDS
-
 	# returns the oktf score given a document and the term
 	def oktf(self, term, document):
 		avglen = self.getAvgFieldLength()
 		freq = self.tf_mem(term, document)
-		return float(self.tf_mem(term, document) / (self.tf_mem(term, document) + 0.5 + 1.5 * (int(self.length(document)) / avglen)))
+		return float(self.tf_mem(term, document) / (self.tf_mem(term, document) + 0.5 + 1.5 * (float(self.Length(document)) / avglen)))
 
 	# gets the document and query and computes their similarity (scores them) based on the okapi_tf method
 	def okapi_tf(self, document, query):
-		Dterms, _ = self.getDocTerms(document)
 		tfD = dict()
 		tfQ = dict()
 		Qterms = query
-		for i in range(len(Dterms)):
-			tfD[Dterms[i]] = self.oktf(Dterms[i], document)
 		for j in range(len(Qterms)):
+			if self.isTermInDoc(Qterms[j], document):
+				tfD[Qterms[j]] = self.oktf(Qterms[j], document)
 			tfQ[Qterms[j]] = self.oktf(Qterms[j], query)
 
-		return self.sim(tfQ, tfD)
-
+		return self.sim(query, document, tfQ, tfD)
 
 	# IMPLEMENTATION FUNCTIONS FOR TF-IDF SCORING FROM HERE ONWARDS
-
 	# returns the tf-idf, given a term and document
 	def tf_idf(self, term, document):
 		D = TOTALDOCS
 		return float(self.oktf(term, document) * math.log(D / self.df(term)))
 
-
 	# returns the similarity between document and query (scores them) based on tf-idf method
 	def TF_IDF(self, document, query):
-		Dterms, _ = self.getDocTerms(document)
 		tfD = dict()
 		tfQ = dict()
 		Qterms = query
-		for i in range(len(Dterms)):
-			tfD[Dterms[i]] = self.tf_idf(Dterms[i], document)
 		for j in range(len(Qterms)):
+			if self.isTermInDoc(Qterms[j], document):
+				tfD[Qterms[j]] = self.tf_idf(Qterms[j], document)
 			tfQ[Qterms[j]] = self.tf_idf(Qterms[j], query)
 
-		return self.sim(tfQ, tfD)
-
+		return self.sim(query, document, tfQ, tfD)
 
 	# IMPLEMENTATION FUNCTIONS FOR OKAPI BM25 FROM HERE ONWARDS
-
 	# returns K as required by the BM25 formula
 	def K(self, document, k1, b):
 		avglen = self.getAvgFieldLength()
-		return float(k1 * ((1 - b) + (b * (self.length(document) / avglen))))
-
+		return float(k1 * ((1 - b) + (b * (self.Length(document) / avglen))))
 
 	# returns the BM25 score for a single query term, given the term, document vector, query vector
 	def BM25(self, term, document, query):
 		D = TOTALDOCS
 		k1 = 1.2
-		k2 = 500
+		k2 = 100
 		b = 0.75
+		dfreq = self.tf_mem(term, document)
+		qfreq = self.tf_mem(term, query)
 		return float(math.log((D + 0.5) / (self.df(term) + 0.5))) \
-			* (((1 + k1) * self.tf_mem(term, document)) / (self.K(document, k1, b) + self.tf_mem(term, document))) \
-			* (((1 + k2) * self.tf_mem(term, query)) / (k2 + self.tf_mem(term, query)))
-
+			* (((1 + k1) * dfreq) / (self.K(document, k1, b) + dfreq)) \
+			* (((1 + k2) * qfreq) / (k2 + qfreq))
 
 	# scores the document and query pair by taking a summation of the BM25 scores of each query term
 	def okapi_BM25(self, document, query):
-		s = 0
-		s = s + sum([self.BM25(query[i], document, query) for i in range(len(query))])
-		return s
-
+		return sum([self.BM25(query[i], document, query) for i in range(len(query))])
 
 	# IMPLEMENTATION OF JELINEK-MERCER SMOOTHING
 	def totalLength(self):
-		sum = 0
-		for i in range(1, TOTALDOCS):
-			sum = sum + int(self.length(i))
-		return sum
+		return sum([int(self.Length(i)) for i in range(1, TOTALDOCS)])
 
 	def Jelinek_Mercer_smoothing(self, term, document):
 		collectionLength = self.totalLength()
 		lmbda = 0.6
-		return lmbda*(self.tf_mem(term, document)/self.length(document)) + ((1-lmbda)*(self.getCumulativeFrequency(term)/collectionLength))
-
+		return (lmbda*(self.tf_mem(term, document)/self.Length(document))) + ((1 - lmbda) * (self.getCumulativeFrequency(term) / collectionLength))
 
 	def JM(self, document, query):
-		Dterms, _ = self.getDocTerms(document)
-		tfD = dict()
-		tfQ = dict()
-		Qterms = query
-		for i in range(len(Dterms)):
-			tfD[Dterms[i]] = self.Jelinek_Mercer_smoothing(Dterms[i], document)
-		for j in range(len(Qterms)):
-			tfQ[Qterms[j]] = self.Jelinek_Mercer_smoothing(Qterms[j], query)
-		return self.sim(tfQ, tfD)
-
-
+		s=1
+		for i in range(len(query)):
+			s = s*self.Jelinek_Mercer_smoothing(query[i], document)
+		return s
 	# returns the cumulative frequency of a term
 	def getCumulativeFrequency(self, term):
 		with open("term_info.txt", "r", encoding="utf8") as term_info:
@@ -377,21 +393,88 @@ class scoring:
 	def tokens(self, query):
 		return self.textNormalize(query)
 
+	def score(self, method, document, query):
+		if len(query) == 0:
+			return 0
+		m = method.lower()
+		if m == "okapibm25":
+			return self.okapi_BM25(document, query)
+		elif m == "jm":
+			return self.JM(document, query)
+		elif m == "tfidf":
+			return self.TF_IDF(document, query)
+		elif m == "okapitf":
+			return self.okapi_tf(document, query)
+		else:
+			print("Invalid scoring method chosen.")
+			exit()
+
+
+	def checkTermsIndoc(self, document, query):
+		s = 0
+		for i in range(len(query)):
+			if self.isTermInDoc(query[i], document) is True:
+				s = s + 1
+		return s
+
+	def isTermInDoc(self, term, doc):
+		postings = self.invertedIndex[str(term)]
+		docs, _ = self.deltaDecodeDocs(postings)
+		if doc in docs:
+			return True
+		else:
+			return False
+
+
 
 s1 = scoring()
+method = input("Enter your method:\t")
+open(method + '.txt', 'w').close()
+print(s1.queries)
+for index in range(len(s1.queries)):
 
-tokens = s1.tokens(s1.queries[0][1])
-query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
-documents = s1.getAllDocsOfaQuery(query)
-scores = []
-for i in range(1, TOTALDOCS):
-	if i in documents:
-		scores.append(s1.JM(i, query))
-	else:
-		scores.append(0.0)
-	print(str(i) + " " + str(scores[i - 1]))
+	tokens = s1.tokens(s1.queries[index][1])
+	query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
+	documents = s1.getAllDocsOfaQuery(query)
+	documents.sort()
+	scores = []
+
+	for i in range(1, TOTALDOCS):
+		if i in documents:
+			scores.append(s1.score(method, i, query))
+		else:
+			scores.append(0.0)
+		print(str(i) + "\t" + str(scores[i-1]))
 
 
-with open("scores2.txt", "w") as s:
-	[s.write(str(202) + "\t" + str(0) + "\t" + s1.getDocTitle(i) + "\t" + str(scores[i]) + "\r\n") for i in range(1, len(scores))]
+	indices = sorted(range(len(scores)), key=scores.__getitem__, reverse=True)
+	scores.sort(reverse=True)
+	with open(method+".txt", "a") as s:
+		[s.write(str(s1.queries[index][0]) + "\t" + str(0) + "\t" + s1.getDocTitle(indices[_]+1) + "\t" + str(_+1) + "\t" + str(scores[_]) + "\t" + "run1" + "\n") for _ in range(0, len(scores))]
 
+
+# s1 = scoring()
+# maxLen = 0
+# minI = 0
+# minLen = 0
+# maxI = 0
+# for i in range(len(s1.queries)):
+# 	tokens = s1.tokens(s1.queries[i][1])
+# 	query = [s1.getTermID(tokens[i]) for i in range(len(tokens))]
+# 	documents = s1.getAllDocsOfaQuery(query)
+# 	L = len(documents)
+# 	print(i, "\t", L)
+# 	if i == 0:
+# 		minLen = L
+# 		maxLen = L
+# 		minI = s1.queries[i][0]
+# 		maxI = s1.queries[i][0]
+# 	if L < minLen:
+# 		minLen = L
+# 		minI = s1.queries[i][0]
+# 	if L > maxLen:
+# 		maxLen = L
+# 		maxI = s1.queries[i][0]
+#
+# print("Max: ", maxI, "\t", maxLen)
+# print("Min: ", minI, "\t", minLen)

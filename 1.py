@@ -69,7 +69,7 @@ open('termids.txt', 'w').close()
 open('doc_index.txt', 'w').close()
 open('doc_lengths.txt', 'w').close()
 
-termList={}
+termList = {}
 docID = 0
 termID = 0
 doclengths = {}
